@@ -10,6 +10,8 @@ Living spec. Source of truth for architecture, schema, and key flows. Update whe
 
 ## Schema
 Source of truth: `server/migrations/*.sql`. Runner: `server/src/migrate.ts` (raw SQL, `schema_migrations` tracking, one transaction per file).
+- **Key wraps** (002): K is wrapped **per passkey** (`passkeys.wrapped_k`, `passkeys.salt`; null until first PRF eval) because PRF output is per-credential. Recovery wrap lives on `users.recovery_wrapped_k` / `recovery_salt`.
+- **Role** (002): `users.role` text `'user'|'admin'`, first registered user becomes admin. `GET /api/me` returns `{ userId, role }`.
 
 ## Key flows
 - **Signup** (built): `POST /api/auth/register/options` mints user UUID + challenge (PRF ext requested) → browser creates passkey → `register/verify` inserts `users` + `passkeys`, creates session. *Session 4 adds:* generate random K → wrap with PRF output → store; recovery code → wrap → store.

@@ -39,12 +39,12 @@ async function createSession(c: Context, userId: string) {
   await db.query("insert into sessions (id, user_id, expires_at) values ($1, $2, $3)", [id, userId, expires]);
   setCookie(c, "sid", id, { httpOnly: true, sameSite: "Lax", path: "/", expires });
 }
-export async function currentUserId(c: Context): Promise<string | null> {
+export async function currentUser(c: Context): Promise<{ userId: string; role: string } | null> {
   const sid = getCookie(c, "sid");
   if (!sid) return null;
-  const { rows } = await db.query<{ user_id: string }>(
-    "select user_id from sessions where id = $1 and expires_at > now()", [sid]);
-  return rows[0]?.user_id ?? null;
+  const { rows } = await db.query<{ user_id: string; role: string }>(
+    "select u.id as user_id, u.role from sessions s join users u on u.id = s.user_id where s.id = $1 and s.expires_at > now()", [sid]);
+  return rows[0] ? { userId: rows[0].user_id, role: rows[0].role } : null;
 }
 
 export const auth = new Hono();
@@ -75,7 +75,10 @@ auth.post("/register/verify", async (c) => {
   if (!verified || !registrationInfo) return c.json({ error: "not verified" }, 400);
 
   const { credential } = registrationInfo;
-  await db.query("insert into users (id) values ($1)", [p.userId]);
+  // first user bootstraps as admin (D19)
+  await db.query(
+    "insert into users (id, role) values ($1, case when exists (select 1 from users) then 'user' else 'admin' end)",
+    [p.userId]);
   await db.query(
     "insert into passkeys (id, user_id, public_key, counter, transports) values ($1, $2, $3, $4, $5)",
     [credential.id, p.userId, Buffer.from(credential.publicKey), credential.counter, credential.transports ?? []],
