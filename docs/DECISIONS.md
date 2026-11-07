@@ -27,6 +27,8 @@ Running decision log (ADR-style). **Decisions** (settled, numbered Dn), **Open Q
 - **D23 — No-PRF fallback: block.** After `create()`, if `clientExtensionResults.prf.enabled` is false → server deletes the just-created user+passkey, client shows "unsupported browser". Rejected: passphrase fallback (second secret, violates D11), recovery-code-as-login. (settled in peer session diary-f5)
 - **D24 — Second passkey enrollment**: needs K in memory on the enrolling device. (a) iCloud-synced passkey → same credential, same PRF, nothing to do. (b) New non-synced device → enter recovery code → unwrap K → create passkey → PRF eval → wrap K → store on that passkeys row. No QR/cross-device handoff in v1. (settled in peer session diary-f5)
 - **D25 — Recovery code**: 128-bit random → base32, grouped `xxxx-xxxx-…` (~26 chars), shown once at signup. KDF: PBKDF2-SHA256 (WebCrypto, ~600k iterations) with random 16-byte `users.recovery_salt` → wrap key → `users.recovery_wrapped_k`. Argon2id rejected: overkill for a 128-bit random secret, needs a dependency. (settled in peer session diary-f5)
+- **D26 — K wrap recipe**: WebCrypto only. `HKDF-SHA256(prfBytes, salt=passkeys.salt (16 random), info="diary-wrap")` → AES-256-GCM key. `wrapped_k = nonce(12) ‖ ciphertext(48)` = 60 bytes. Same layout for `users.recovery_wrapped_k` with PBKDF2-derived key (D25).
+- **D27 — When to wrap K**: at signup, client generates K (32 random) + recovery code. Try PRF at `create()`; if `clientExtensionResults.prf.results` present → wrap immediately (one Face ID). Else → immediate `get()` with `prf.eval` → wrap (two Face IDs). Then POST both wraps. Recovery code shown once, must be acknowledged. Rejected: lazy wrap at first entry (same second prompt, worse failure modes).
 - **D4 — Motivation**: (a) learn system design hands-on, (b) tool tailored to my own habits, (c) possibly open to public later.
 
 ## Open Questions
@@ -45,6 +47,7 @@ Running decision log (ADR-style). **Decisions** (settled, numbered Dn), **Open Q
 - Alternative: at-rest encryption + server-side search (Postgres FTS or Elasticsearch). Simpler, server can read entries.
 
 ## Log
+- **2026-11-06** — Session 4 design split with peer session diary-f5: D21–D27 settled. 002 pushed (d390465).
 - **2026-11-06** — Session 3 passkeys built (bd97280). D20: schema fix, migration 002 (built by peer session diary-f5).
 - **2026-11-06** — D16: Hono.
 - **2026-11-06** — D12–D15: TypeScript, React+Vite, TipTap, Minisforum 790 hosting.
