@@ -4,7 +4,7 @@ Living spec. Source of truth for architecture, schema, and key flows. Update whe
 
 ## Architecture
 - **Client**: React + Vite SPA. Holds all plaintext, keys, search index.
-- **Server**: TypeScript (Hono/Fastify TBD). Auth (WebAuthn + PRF) + encrypted blob store. Never sees plaintext or key K.
+- **Server**: TypeScript, Hono on Node. Auth (WebAuthn + PRF) + encrypted blob store. Never sees plaintext or key K.
 - **DB**: Postgres.
 - **Client cache**: IndexedDB (entries + search index, encrypted).
 

@@ -17,13 +17,13 @@ Running decision log (ADR-style). **Decisions** (settled, numbered Dn), **Open Q
 - **D13 — Frontend**: React + Vite SPA. No SSR (entries are client-decrypted).
 - **D14 — Editor**: TipTap (ProseMirror). Store `editor.getJSON()` encrypted; index `editor.getText()` client-side.
 - **D15 — Hosting**: Minisforum 790 home server (new, 2026-11-06). HTTPS via Cloudflare Tunnel or similar (passkeys require HTTPS + real domain).
+- **D16 — Server framework**: Hono on Node. Alternative: Fastify (heavier, Node-only). Runtime Bun deferred.
 - **D4 — Motivation**: (a) learn system design hands-on, (b) tool tailored to my own habits, (c) possibly open to public later.
 
 ## Open Questions
 - Multi-user "day one": full auth now, or single-user with clean seams for later?
 - Passkey fallback for browsers without PRF? (block, or passphrase fallback)
 - WebAuthn server library (e.g. SimpleWebAuthn) vs fully hand-rolled?
-- Backend framework + runtime: Hono vs Fastify, Node vs Bun?
 - Domain name + HTTPS method (Cloudflare Tunnel vs Caddy + port-forward)?
 - Minisforum not yet set up (as of 2026-11-06). OS, SSH, Docker vs systemd all TBD. Dev locally until then.
 - Rich text storage format: HTML, Markdown, or editor JSON (e.g. TipTap/ProseMirror)?
@@ -36,6 +36,7 @@ Running decision log (ADR-style). **Decisions** (settled, numbered Dn), **Open Q
 - Alternative: at-rest encryption + server-side search (Postgres FTS or Elasticsearch). Simpler, server can read entries.
 
 ## Log
+- **2026-11-06** — D16: Hono.
 - **2026-11-06** — D12–D15: TypeScript, React+Vite, TipTap, Minisforum 790 hosting.
 - **2026-11-06** — D11: passkeys + PRF. Considered Sign-in-with-Apple (no key material → breaks E2E), vault passphrase (2 secrets), dropping E2E.
 - **2026-11-06** — D10: committed to arch B. Moving to stack/auth/hosting questions.
