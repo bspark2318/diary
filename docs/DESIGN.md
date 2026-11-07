@@ -8,14 +8,8 @@ Living spec. Source of truth for architecture, schema, and key flows. Update whe
 - **DB**: Postgres.
 - **Client cache**: IndexedDB (entries + search index, encrypted).
 
-## Schema (draft)
-```
-users(id, created_at)
-passkeys(id, user_id, public_key, counter, transports, created_at)
-key_wraps(user_id, kind: 'prf'|'recovery', wrapped_k, salt)
-entries(user_id, date, ciphertext, nonce, updated_at)  PK(user_id, date)
-sessions(id, user_id, expires_at)
-```
+## Schema
+Source of truth: `server/migrations/*.sql`. Runner: `server/src/migrate.ts` (raw SQL, `schema_migrations` tracking, one transaction per file).
 
 ## Key flows
 - **Signup**: register passkey (PRF enabled) → generate random K → wrap K with PRF output → store wrap; generate recovery code → wrap K → store wrap.
@@ -26,6 +20,7 @@ sessions(id, user_id, expires_at)
 - **Recovery**: recovery code → unwrap K → register new passkey → re-wrap.
 
 ## Dev
+- `pnpm --filter server migrate` → apply pending migrations.
 - `pnpm db` → Postgres on localhost:5433 (user/pw/db = diary). `pnpm dev` → server :3000 + client :5173 (proxies `/api`).
 
 ## Open

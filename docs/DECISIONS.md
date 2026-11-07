@@ -19,6 +19,7 @@ Running decision log (ADR-style). **Decisions** (settled, numbered Dn), **Open Q
 - **D15 — Hosting**: Minisforum 790 home server (new, 2026-11-06). HTTPS via Cloudflare Tunnel or similar (passkeys require HTTPS + real domain).
 - **D16 — Server framework**: Hono on Node. Alternative: Fastify (heavier, Node-only). Runtime Bun deferred.
 - **D17 — Process**: one topic per session, learning-paced (not one-shot). Roadmap: 1 scaffold · 2 schema/migrations · 3 passkeys · 4 PRF+key K · 5 entries+editor · 6 IndexedDB+sync · 7 search (MiniSearch) · 8 deploy.
+- **D18 — DB access**: raw SQL via `pg` + hand-rolled migration runner (`server/migrations/NNN_name.sql`, `schema_migrations` table). No ORM. Alternatives: Drizzle, Kysely.
 - **D4 — Motivation**: (a) learn system design hands-on, (b) tool tailored to my own habits, (c) possibly open to public later.
 
 ## Open Questions
