@@ -14,12 +14,14 @@ Source of truth: `server/migrations/*.sql`. Runner: `server/src/migrate.ts` (raw
 - **Role** (002): `users.role` text `'user'|'admin'`, first registered user becomes admin. `GET /api/me` returns `{ userId, role }`.
 
 ## Key flows
-- **Signup** (built): `POST /api/auth/register/options` mints user UUID + challenge (PRF ext requested) → browser creates passkey → `register/verify` inserts `users` + `passkeys`, creates session. *Session 4 adds:* generate random K → wrap with PRF output → store; recovery code → wrap → store.
-- **Login** (built): `login/options` (discoverable, no allowCredentials) → browser signs → `login/verify` looks up `passkeys` by credential id, verifies, bumps counter, inserts `sessions`, sets httpOnly `sid` cookie. `GET /api/me` → user id. *Session 4 adds:* PRF output → unwrap K locally.
+- **Signup** (built): `POST /api/auth/register/options` mints user UUID + challenge (PRF ext requested) → browser creates passkey → `register/verify` inserts `users` + `passkeys`, creates session. *Session 4 adds (D23, D27):* if `prf.enabled` false → server deletes user+passkey, client shows "unsupported browser". Else client generates K (32 random) + recovery code; PRF bytes from `create()` results if present, else immediate `get()` with `prf.eval`; wraps K twice (PRF + recovery, see Key wrap) → `POST /api/keys/wrap`. Recovery code shown once, must be acknowledged.
+- **Login** (built): `login/options` (discoverable, no allowCredentials) → browser signs → `login/verify` looks up `passkeys` by credential id, verifies, bumps counter, inserts `sessions`, sets httpOnly `sid` cookie. `GET /api/me` → `{ userId, role }`. *Session 4 adds:* `prf.eval` with fixed input → server returns `wrapped_k` + `salt` for that passkey → client unwraps K, keeps it in memory only.
+- **Key wrap** (D21, D25, D26): PRF input = `sha256("diary-k-wrap-v1")` (fixed; per-passkey input would break discoverable login). `HKDF-SHA256(prf, salt=passkeys.salt[16], info="diary-wrap")` → AES-256-GCM → `wrapped_k = nonce[12] ‖ ct[48]`. Recovery: `PBKDF2-SHA256(code, users.recovery_salt[16], ~600k)` → same AES-GCM layout → `users.recovery_wrapped_k`. Recovery code = 128-bit random, base32, `xxxx-xxxx-…`.
+- **Second passkey** (D24): synced (iCloud) → same credential, nothing to do. New device → recovery code → unwrap K → create passkey → PRF eval → wrap → store on that `passkeys` row.
 - **Write**: TipTap JSON → AES-GCM(K) → PUT /entries/:date. Update local index + IndexedDB.
 - **Load**: GET /entries?since=last_sync → decrypt → MiniSearch index → IndexedDB.
 - **Search**: local MiniSearch only. Zero network.
-- **Recovery**: recovery code → unwrap K → register new passkey → re-wrap.
+- **Recovery**: recovery code → unwrap K → register new passkey → re-wrap. No PRF-less fallback (D23).
 
 ## Dev
 - Auth challenge store is an in-memory Map (5-min TTL, `chal` cookie). Fine for a single dev process; move to DB/Redis before multi-instance deploy.
