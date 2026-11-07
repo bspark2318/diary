@@ -22,12 +22,14 @@ Running decision log (ADR-style). **Decisions** (settled, numbered Dn), **Open Q
 - **D18 — DB access**: raw SQL via `pg` + hand-rolled migration runner (`server/migrations/NNN_name.sql`, `schema_migrations` table). No ORM. Alternatives: Drizzle, Kysely.
 - **D19 — Admin role**: user is admin of the site. `users.role` ('user'|'admin'), first user bootstrapped as admin. Admin powers: list/delete users, invites, stats. Admin **cannot** read entries (E2E). Migration + UI in a later session.
 - **D20 — Key wraps live with their unlocker**: dropped `key_wraps`. PRF output is per-passkey → `passkeys.wrapped_k/salt` (nullable until first login). Recovery wrap → `users.recovery_wrapped_k/recovery_salt`. `users.role text check in ('user','admin')`, first user = admin. Migration 002. Rationale: envelope encryption — one data key K, one wrap per unlocker.
+- **D21 — PRF input**: fixed app constant (`sha256("diary-k-wrap-v1")`), not per-passkey. Per-passkey salt would need the credential id *before* `get()`, breaking discoverable (no-username) login. `passkeys.salt` is the HKDF salt instead.
+- **D22 — Sessions table stays** (vs signed JWT cookie): revocation + device list worth one index lookup per request. `passkeys.counter` kept per spec though Apple synced passkeys always report 0.
+- **D23 — No-PRF fallback: block.** After `create()`, if `clientExtensionResults.prf.enabled` is false → server deletes the just-created user+passkey, client shows "unsupported browser". Rejected: passphrase fallback (second secret, violates D11), recovery-code-as-login. (settled in peer session diary-f5)
 - **D4 — Motivation**: (a) learn system design hands-on, (b) tool tailored to my own habits, (c) possibly open to public later.
 
 ## Open Questions
 - Admin: exact powers? invite-only signup vs open? admin UI vs CLI?
 - Multi-user "day one": full auth now, or single-user with clean seams for later?
-- Passkey fallback for browsers without PRF? (block, or passphrase fallback)
 - WebAuthn server library (e.g. SimpleWebAuthn) vs fully hand-rolled?
 - Domain name + HTTPS method (Cloudflare Tunnel vs Caddy + port-forward)?
 - Minisforum not yet set up (as of 2026-11-06). OS, SSH, Docker vs systemd all TBD. Dev locally until then.
