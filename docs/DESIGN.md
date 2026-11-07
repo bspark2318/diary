@@ -18,19 +18,20 @@ Source of truth: `server/migrations/*.sql`. Runner: `server/src/migrate.ts` (raw
 - **Login / unlock** (built): `login/options` (discoverable) → client injects `prf.eval` → `get()` → `login/verify` verifies, bumps counter, creates session, returns `{ userId, role, credentialId, wrappedK, salt, hasRecovery }` → client unwraps K with the PRF output. K is a non-extractable `CryptoKey` in memory only (`client/src/crypto/key.ts`: `getK()`, `onKeyChange()`), so a reload = locked → "Unlock" re-runs the same flow. If `wrappedK` is null and `hasRecovery` is false (signup interrupted) the client finishes setup; if `hasRecovery` is true it needs the recovery enrollment flow (D24b, not built).
 - **Key wrap** (D21, D25, D26): PRF input = `sha256("diary-k-wrap-v1")` (fixed; per-passkey input would break discoverable login). `HKDF-SHA256(prf, salt=passkeys.salt[16], info="diary-wrap")` → AES-256-GCM → `wrapped_k = nonce[12] ‖ ct[48]`. Recovery: `PBKDF2-SHA256(code, users.recovery_salt[16], ~600k)` → same AES-GCM layout → `users.recovery_wrapped_k`. Recovery code = 128-bit random, base32, `xxxx-xxxx-…`.
 - **Second passkey** (D24): synced (iCloud) → same credential, nothing to do. New device → recovery code → unwrap K → create passkey → PRF eval → wrap → store on that `passkeys` row.
-- **Write**: TipTap JSON → AES-GCM(K) → PUT /entries/:date. Update local index + IndexedDB.
-- **Load**: GET /entries?since=last_sync → decrypt → MiniSearch index → IndexedDB.
+- **Write**: TipTap JSON → AES-GCM(K) → PUT /entries/:date (with `baseUpdatedAt`) → upsert into cache. See Local cache + sync.
+- **Load**: IndexedDB → memory → GET /entries?since=last_sync−5s → upsert → decrypt on demand. See Local cache + sync.
 - **Search**: local MiniSearch only. Zero network.
 - **Recovery** (not built): recovery code → unwrap K → register new passkey → re-wrap. No PRF-less fallback (D23). *Open:* with signup closed (D28) and no username, the recovery flow needs a way to identify + authenticate the user from the code alone (e.g. a server-side verifier derived from the code) and an authenticated "add passkey" route.
 
-## Session 6 design — IndexedDB cache + incremental sync (notes only, no code yet)
-- **Stores** (one IDB database `diary`, versioned): `entries` keyed by `date` → `{ ciphertext, nonce, updated_at }` exactly as the server returns them (still encrypted; IDB is as untrusted as the server). `meta` → `{ last_sync }`.
-- **Cold start**: read all of `entries` from IDB → decrypt with K → build MiniSearch index in memory → render. Then `GET /api/entries?since=last_sync` → upsert rows into IDB + the in-memory index → `meta.last_sync = max(updated_at)` from the response (server clock, not client).
-- **Write**: encrypt → `PUT /api/entries/:date` → on 2xx write the row (with server's `updated_at`) to IDB and the index. No offline queue in v1: a failed PUT is surfaced, not retried later.
-- **Conflicts**: one entry per day per user, last write wins by `updated_at`; server is authoritative. Multi-device edits of the same day will clobber — acceptable for v1.
-- **Index cache**: v1 rebuilds MiniSearch from decrypted entries at load (fast enough at ~7 MB / 10 yrs). Caching the serialized index (`JSON.stringify(index)` → AES-GCM(K) → IDB) is an optimization for later; adds invalidation complexity.
-- **Lock/logout**: K is memory-only; IDB content stays encrypted at rest. Logout clears IDB (`meta` + `entries`) so a shared machine holds nothing.
-- **Open**: deletions (tombstone row vs hard delete + `deleted_at`), `since` precision (use `>=` and dedupe, or `>` with a monotonic server timestamp), quota/eviction behaviour in Safari.
+## Local cache + sync (built, D34)
+- **Code**: `client/src/cache/idb.ts` (promise wrapper; DB `diary`, stores `entries` keyed by date + `meta`), `client/src/entries/cache.ts` (memory map + sync), `client/src/entries/api.ts` (reads go through the cache).
+- **Stored**: rows exactly as the server returns them (`ciphertext`, `nonce`, `updatedAt`) — still encrypted. `meta.last_sync` = max `updatedAt` from the last sync **response** (server time; never the client clock, never advanced by a local PUT).
+- **Sync**: IDB → memory once, then `GET /api/entries?since=last_sync − 5 s` (server uses `>=`; client upsert is idempotent). Overlap covers a write whose txn started before a sync but committed after it (Postgres `now()` = txn start). Rows + cursor are written in one IDB transaction.
+- **Reads**: `listEntries()` syncs then returns local rows; `getEntry()` only waits for the session's first sync. No per-day network calls. Re-sync on tab `visibilitychange` (Diary.tsx); no polling.
+- **Write**: `putEntry()` → server → upsert the returned `updatedAt` into memory + IDB. Conflicts stay server-side (D32 409).
+- **Lifecycle**: reload keeps IDB (K is gone → "locked" → Unlock → instant). Logout (`onKeyChange` non-null → null) wipes memory + IDB. IDB failure (private mode, quota) → silent memory-only mode.
+- **Not cached**: the search index — rebuilt from decrypted entries on each unlock (D33/D34).
+- **Open**: deletions (none in v1; a cleared day keeps its row), multi-tab (each tab syncs independently; last PUT wins via 409).
 
 ## Dev
 - Auth challenge store is an in-memory Map (5-min TTL, `chal` cookie). Fine for a single dev process; move to DB/Redis before multi-instance deploy.

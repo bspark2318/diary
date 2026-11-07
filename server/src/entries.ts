@@ -21,7 +21,7 @@ entries.get("/", async (c) => {
   const since = c.req.query("since");
   const { rows } = await db.query(
     `select date::text, ciphertext, nonce, updated_at from entries
-     where user_id = $1 and ($2::timestamptz is null or updated_at > $2)
+     where user_id = $1 and ($2::timestamptz is null or updated_at >= $2)
      order by date`,
     [userId, since ?? null],
   );

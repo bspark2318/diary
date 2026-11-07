@@ -1,19 +1,19 @@
+import * as cache from "./cache";
+
 export type EntryRow = { date: string; ciphertext: string; nonce: string; updatedAt: string };
 
 export const localDate = (d = new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
+// Reads go through the local cache (S6): listEntries syncs, getEntry only waits for the first sync.
 export async function listEntries(): Promise<EntryRow[]> {
-  const r = await fetch("/api/entries");
-  if (!r.ok) throw new Error(`list failed: ${r.status}`);
-  return r.json();
+  await cache.sync();
+  return cache.all();
 }
 
 export async function getEntry(date: string): Promise<EntryRow | null> {
-  const r = await fetch(`/api/entries/${date}`);
-  if (r.status === 404) return null;
-  if (!r.ok) throw new Error(`get failed: ${r.status}`);
-  return r.json();
+  await cache.ready();
+  return cache.one(date);
 }
 
 export class Conflict extends Error {
@@ -32,5 +32,7 @@ export async function putEntry(date: string, body: { ciphertext: string; nonce: 
   });
   if (r.status === 409) throw new Conflict((await r.json()).updatedAt);
   if (!r.ok) throw new Error(`put failed: ${r.status}`);
-  return r.json();
+  const res: { updatedAt: string } = await r.json();
+  await cache.upsert({ date, ...body, updatedAt: res.updatedAt });
+  return res;
 }
