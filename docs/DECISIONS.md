@@ -30,6 +30,9 @@ Running decision log (ADR-style). **Decisions** (settled, numbered Dn), **Open Q
 - **D26 — K wrap recipe**: WebCrypto only. `HKDF-SHA256(prfBytes, salt=passkeys.salt (16 random), info="diary-wrap")` → AES-256-GCM key. `wrapped_k = nonce(12) ‖ ciphertext(48)` = 60 bytes. Same layout for `users.recovery_wrapped_k` with PBKDF2-derived key (D25).
 - **D27 — When to wrap K**: at signup, client generates K (32 random) + recovery code. Try PRF at `create()`; if `clientExtensionResults.prf.results` present → wrap immediately (one Face ID). Else → immediate `get()` with `prf.eval` → wrap (two Face IDs). Then POST both wraps. Recovery code shown once, must be acknowledged. Rejected: lazy wrap at first entry (same second prompt, worse failure modes).
 - **D28 — Signup closed after first user**: first registration becomes admin, then `register/options` returns 403. Invites deferred (not needed; "just me" for now). Admin UI deferred.
+- **D29 — "Today" = browser-local date** (`YYYY-MM-DD` from `Date` in the client's zone). No per-user timezone column. Alternative rejected: server/UTC date (wrong near midnight for the writer).
+- **D30 — Autosave**: debounce 1 s after last keystroke → encrypt → PUT. No save button. Empty days have no row; a row is created on first autosave.
+- **D31 — Navigation**: sidebar list of dates (newest first, today pinned on top even if empty) + editor on the right. Dates come from `GET /api/entries` (S6 will cache). Rejected for v1: prev/next arrows only, calendar grid, infinite scroll.
 - **D4 — Motivation**: (a) learn system design hands-on, (b) tool tailored to my own habits, (c) possibly open to public later.
 
 ## Open Questions
@@ -38,8 +41,6 @@ Running decision log (ADR-style). **Decisions** (settled, numbered Dn), **Open Q
 - WebAuthn server library (e.g. SimpleWebAuthn) vs fully hand-rolled?
 - Domain name + HTTPS method (Cloudflare Tunnel vs Caddy + port-forward)?
 - Minisforum not yet set up (as of 2026-11-06). OS, SSH, Docker vs systemd all TBD. Dev locally until then.
-- Rich text storage format: HTML, Markdown, or editor JSON (e.g. TipTap/ProseMirror)?
-- Timezone rule for "one per day"?
 - Must-haves vs nice-to-haves?
 
 ## Ideas / Parking Lot
