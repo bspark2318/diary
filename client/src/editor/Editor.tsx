@@ -6,6 +6,10 @@ import { Conflict, getEntry, putEntry } from "../entries/api";
 
 type Props = { date: string; onSaved: (date: string, doc: unknown) => void };
 
+const asLocal = (ymd: string) => { const [y, m, d] = ymd.split("-").map(Number); return new Date(y, m - 1, d); };
+const weekday = (ymd: string) => asLocal(ymd).toLocaleDateString(undefined, { weekday: "long" });
+const longDate = (ymd: string) => asLocal(ymd).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+
 // One day's entry. Loads + decrypts on date change; autosaves 1 s after last keystroke (D30);
 // sends baseUpdatedAt for optimistic locking (D32).
 export default function Editor({ date, onSaved }: Props) {
@@ -51,13 +55,15 @@ export default function Editor({ date, onSaved }: Props) {
     return () => { cancelled = true; window.clearTimeout(timer.current); };
   }, [editor, date]);
 
+  const label: Record<typeof status, string> = { loading: "loading", ready: "", saving: "saving…", saved: "saved", conflict: "changed on another device — reload to continue", error: "couldn’t save" };
   return (
-    <section style={{ flex: 1 }}>
-      <header style={{ display: "flex", justifyContent: "space-between", color: "#888", fontSize: 13 }}>
-        <span>{date}</span>
-        <span>{status === "conflict" ? "changed elsewhere — reload" : status}</span>
-      </header>
+    <main className="page">
+      <div className="meta">
+        <span>{weekday(date)}</span>
+        <span className={status === "conflict" || status === "error" ? "warn" : ""}>{label[status]}</span>
+      </div>
+      <h1 className="date">{longDate(date)}</h1>
       <EditorContent editor={editor} />
-    </section>
+    </main>
   );
 }

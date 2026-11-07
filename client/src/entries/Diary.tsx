@@ -6,7 +6,7 @@ import SearchBox from "../search/SearchBox";
 import { buildIndex, indexDay } from "../search/index";
 
 // Sidebar of dates (newest first, today pinned) + editor for the selected day (D31).
-export default function Diary() {
+export default function Diary({ onLogout }: { onLogout: () => void }) {
   const today = localDate();
   const [dates, setDates] = useState<string[]>([]);
   const [selected, setSelected] = useState(today);
@@ -23,16 +23,21 @@ export default function Diary() {
 
   const list = dates.includes(today) ? dates : [today, ...dates];
   return (
-    <div style={{ display: "flex", gap: 24 }}>
-      <nav style={{ width: 200 }}>
+    <div className="app">
+      <aside className="side">
+        <div className="brand">Diary</div>
         <SearchBox onPick={setSelected} onQuery={setSearching} />
-        {!searching && list.map((d) => (
-          <div key={d} onClick={() => setSelected(d)}
-               style={{ cursor: "pointer", padding: "4px 8px", fontWeight: d === selected ? 700 : 400, opacity: dates.includes(d) ? 1 : 0.5 }}>
-            {d}{d === today ? " · today" : ""}
-          </div>
-        ))}
-      </nav>
+        {!searching && <>
+          <div className="sec">Entries</div>
+          {list.map((d) => (
+            <div key={d} onClick={() => setSelected(d)}
+                 className={"day" + (d === selected ? " on" : "") + (dates.includes(d) ? "" : " empty")}>
+              <span>{d}</span>{d === today && <span className="tag">today</span>}
+            </div>
+          ))}
+        </>}
+        <div className="foot"><span>unlocked</span><button onClick={onLogout}>Log out</button></div>
+      </aside>
       <Editor date={selected} onSaved={(d, doc) => { indexDay(d, doc); if (!dates.includes(d)) refresh(); }} />
     </div>
   );

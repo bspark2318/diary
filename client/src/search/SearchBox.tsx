@@ -16,14 +16,15 @@ export default function SearchBox({ onPick, onQuery }: Props) {
 
   return (
     <div>
-      <input value={q} onChange={(e) => change(e.target.value)} placeholder="search" style={{ width: "100%", boxSizing: "border-box", marginBottom: 8 }} />
+      <input value={q} onChange={(e) => change(e.target.value)} placeholder="Search" />
       {q.trim() !== "" && (
         <div>
-          {hits.length === 0 && <div style={{ opacity: 0.5, padding: "4px 8px" }}>no matches</div>}
+          <div className="sec">Results</div>
+          {hits.length === 0 && <div className="none">No matches</div>}
           {hits.map((h) => (
-            <div key={h.date} onClick={() => onPick(h.date)} style={{ cursor: "pointer", padding: "4px 8px" }}>
-              <div style={{ fontWeight: 600 }}>{h.date}</div>
-              <div style={{ fontSize: 12, opacity: 0.7 }}>{h.snippet}</div>
+            <div key={h.date} onClick={() => onPick(h.date)} className="hit">
+              <div>{h.date}</div>
+              <div className="snip">{h.snippet}</div>
             </div>
           ))}
         </div>

@@ -1,0 +1,69 @@
+/* D35: Notion structure × paper warmth. Tokens first, then layout, then type. */
+:root {
+  --bg: #faf7f2;
+  --side: #f3efe8;
+  --ink: #2a2622;
+  --mut: #948b80;
+  --line: #e7e1d7;
+  --acc: #a0522d;
+  --hover: #ebe6dd;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--serif); font-size: 18px; line-height: 1.7; -webkit-font-smoothing: antialiased; }
+button, input { font: inherit; color: inherit; }
+
+/* ---- app shell ---- */
+.app { display: grid; grid-template-columns: 232px 1fr; min-height: 100%; }
+.side { background: var(--side); border-right: 1px solid var(--line); padding: 18px 10px; font-family: var(--sans); font-size: 13.5px; display: flex; flex-direction: column; }
+.side .brand { font-family: var(--serif); font-weight: 600; font-size: 17px; padding: 6px 10px; margin-bottom: 10px; }
+.side input { width: 100%; border: 1px solid var(--line); background: var(--bg); padding: 7px 10px; border-radius: 6px; margin-bottom: 14px; outline: none; }
+.side input:focus { border-color: var(--mut); }
+.side .sec { font-size: 11px; color: var(--mut); font-weight: 600; padding: 8px 10px 4px; text-transform: uppercase; letter-spacing: .06em; }
+.side .day { padding: 5px 10px; border-radius: 5px; cursor: pointer; font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; }
+.side .day:hover, .side .day.on { background: var(--hover); }
+.side .day.on { font-weight: 500; }
+.side .day.empty { color: var(--mut); }
+.side .day .tag { color: var(--acc); font-size: 11px; font-weight: 500; }
+.side .hit { padding: 6px 10px; border-radius: 5px; cursor: pointer; }
+.side .hit:hover { background: var(--hover); }
+.side .hit .snip { font-size: 12px; color: var(--mut); font-family: var(--serif); line-height: 1.4; }
+.side .none { padding: 6px 10px; color: var(--mut); }
+.side .foot { margin-top: auto; padding: 8px 10px 0; display: flex; justify-content: space-between; color: var(--mut); font-size: 12px; }
+.side .foot button { background: none; border: 0; padding: 0; color: var(--mut); cursor: pointer; }
+.side .foot button:hover { color: var(--ink); }
+
+.page { padding: 64px 80px; max-width: 860px; }
+.page .meta { font-family: var(--sans); font-size: 12.5px; color: var(--mut); margin-bottom: 24px; display: flex; gap: 10px; }
+.page .meta .warn { color: var(--acc); }
+.page h1.date { font-weight: 600; font-size: 38px; margin: 0 0 14px; letter-spacing: -.015em; line-height: 1.15; }
+
+/* ---- editor content (TipTap renders into .ProseMirror) ---- */
+.ProseMirror { outline: none; min-height: 50vh; }
+.ProseMirror p { margin: 0 0 14px; }
+.ProseMirror h1, .ProseMirror h2, .ProseMirror h3 { font-weight: 600; margin: 30px 0 8px; line-height: 1.2; }
+.ProseMirror h1 { font-size: 30px; } .ProseMirror h2 { font-size: 23px; } .ProseMirror h3 { font-size: 19px; }
+.ProseMirror ul, .ProseMirror ol { padding-left: 24px; margin: 0 0 14px; }
+.ProseMirror li { margin: 3px 0; }
+.ProseMirror em { color: var(--acc); }
+.ProseMirror blockquote { border-left: 2px solid var(--line); margin: 0 0 14px; padding-left: 16px; color: var(--mut); }
+.ProseMirror code { font-family: ui-monospace, Menlo, monospace; font-size: .9em; background: var(--side); padding: 1px 5px; border-radius: 4px; }
+.ProseMirror pre { background: var(--side); padding: 12px 16px; border-radius: 6px; overflow-x: auto; }
+.ProseMirror pre code { background: none; padding: 0; }
+.ProseMirror hr { border: 0; border-top: 1px solid var(--line); margin: 24px 0; }
+.ProseMirror p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: var(--mut); pointer-events: none; float: left; height: 0; }
+
+/* ---- auth / recovery screens ---- */
+.screen { min-height: 100%; display: grid; place-items: center; padding: 24px; }
+.card { width: min(440px, 100%); font-family: var(--sans); font-size: 15px; line-height: 1.6; }
+.card h1 { font-family: var(--serif); font-weight: 600; font-size: 34px; margin: 0 0 6px; letter-spacing: -.015em; }
+.card .lead { color: var(--mut); margin: 0 0 28px; }
+.card .row { display: flex; gap: 10px; }
+.btn { border: 1px solid var(--line); background: var(--bg); padding: 9px 16px; border-radius: 6px; cursor: pointer; font-family: var(--sans); font-size: 14px; }
+.btn:hover { background: var(--hover); }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn.primary:hover { opacity: .9; }
+.card pre.code { font-family: ui-monospace, Menlo, monospace; font-size: 19px; letter-spacing: .04em; background: var(--side); border: 1px solid var(--line); padding: 16px; border-radius: 8px; user-select: all; margin: 0 0 18px; white-space: pre-wrap; }
+.card .err { color: var(--acc); margin-top: 14px; }
