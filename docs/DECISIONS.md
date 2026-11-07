@@ -21,6 +21,7 @@ Running decision log (ADR-style). **Decisions** (settled, numbered Dn), **Open Q
 - **D17 — Process**: one topic per session, learning-paced (not one-shot). Roadmap: 1 scaffold · 2 schema/migrations · 3 passkeys · 4 PRF+key K · 5 entries+editor · 6 IndexedDB+sync · 7 search (MiniSearch) · 8 deploy.
 - **D18 — DB access**: raw SQL via `pg` + hand-rolled migration runner (`server/migrations/NNN_name.sql`, `schema_migrations` table). No ORM. Alternatives: Drizzle, Kysely.
 - **D19 — Admin role**: user is admin of the site. `users.role` ('user'|'admin'), first user bootstrapped as admin. Admin powers: list/delete users, invites, stats. Admin **cannot** read entries (E2E). Migration + UI in a later session.
+- **D20 — Key wraps live with their unlocker**: dropped `key_wraps`. PRF output is per-passkey → `passkeys.wrapped_k/salt` (nullable until first login). Recovery wrap → `users.recovery_wrapped_k/recovery_salt`. `users.role text check in ('user','admin')`, first user = admin. Migration 002. Rationale: envelope encryption — one data key K, one wrap per unlocker.
 - **D4 — Motivation**: (a) learn system design hands-on, (b) tool tailored to my own habits, (c) possibly open to public later.
 
 ## Open Questions
@@ -40,6 +41,7 @@ Running decision log (ADR-style). **Decisions** (settled, numbered Dn), **Open Q
 - Alternative: at-rest encryption + server-side search (Postgres FTS or Elasticsearch). Simpler, server can read entries.
 
 ## Log
+- **2026-11-06** — Session 3 passkeys built (bd97280). D20: schema fix, migration 002 (built by peer session diary-f5).
 - **2026-11-06** — D16: Hono.
 - **2026-11-06** — D12–D15: TypeScript, React+Vite, TipTap, Minisforum 790 hosting.
 - **2026-11-06** — D11: passkeys + PRF. Considered Sign-in-with-Apple (no key material → breaks E2E), vault passphrase (2 secrets), dropping E2E.
