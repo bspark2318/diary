@@ -33,6 +33,7 @@ Running decision log (ADR-style). **Decisions** (settled, numbered Dn), **Open Q
 - **D29 — "Today" = browser-local date** (`YYYY-MM-DD` from `Date` in the client's zone). No per-user timezone column. Alternative rejected: server/UTC date (wrong near midnight for the writer).
 - **D30 — Autosave**: debounce 1 s after last keystroke → encrypt → PUT. No save button. Empty days have no row; a row is created on first autosave.
 - **D31 — Navigation**: sidebar list of dates (newest first, today pinned on top even if empty) + editor on the right. Dates come from `GET /api/entries` (S6 will cache). Rejected for v1: prev/next arrows only, calendar grid, infinite scroll.
+- **D32 — Conflict handling**: optimistic locking in v1. Client sends `baseUpdatedAt` (the `updatedAt` it loaded, or null for new). Server PUT rejects with 409 if row's `updated_at` differs → client reloads and shows notice. Plus resync on tab focus (S6). Rejected: last-write-wins silently.
 - **D4 — Motivation**: (a) learn system design hands-on, (b) tool tailored to my own habits, (c) possibly open to public later.
 
 ## Open Questions
