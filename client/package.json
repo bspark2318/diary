@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@simplewebauthn/browser": "^14.0.0",
+    "@tiptap/pm": "^3.33.0",
+    "@tiptap/react": "^3.33.0",
+    "@tiptap/starter-kit": "^3.33.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
