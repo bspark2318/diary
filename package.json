@@ -1,0 +1,8 @@
+{
+  "name": "diary",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "db": "docker compose up -d"
+  }
+}

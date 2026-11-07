@@ -25,5 +25,8 @@ sessions(id, user_id, expires_at)
 - **Search**: local MiniSearch only. Zero network.
 - **Recovery**: recovery code → unwrap K → register new passkey → re-wrap.
 
+## Dev
+- `pnpm db` → Postgres on localhost:5433 (user/pw/db = diary). `pnpm dev` → server :3000 + client :5173 (proxies `/api`).
+
 ## Open
 See `DECISIONS.md` → Open Questions.
