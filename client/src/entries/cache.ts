@@ -8,7 +8,7 @@ const OVERLAP_MS = 5_000; // Postgres now() is txn start: a slow write can commi
 const rows = new Map<string, EntryRow>();
 let lastSync: string | null = null;   // server's max updatedAt seen so far; never set from a local PUT or the client clock
 let loaded: Promise<void> | null = null;
-let inflight: Promise<void> | null = null;
+let inflight: Promise<number> | null = null;
 let idbOk = true;                     // false → memory-only (private mode, quota); every load is a full fetch
 
 async function load() {
@@ -27,10 +27,11 @@ async function doSync() {
   const r = await fetch(`/api/entries${since}`);
   if (!r.ok) throw new Error(`sync failed: ${r.status}`);
   const changed: EntryRow[] = await r.json();
-  if (!changed.length) return;
+  if (!changed.length) return 0;
   for (const e of changed) rows.set(e.date, e);
   lastSync = changed.reduce((m, e) => (e.updatedAt > m ? e.updatedAt : m), lastSync ?? ""); // ISO-8601 Z strings sort lexically
   await persist(changed, lastSync);
+  return changed.length;
 }
 
 async function persist(list: EntryRow[], cursor?: string) {
@@ -38,13 +39,13 @@ async function persist(list: EntryRow[], cursor?: string) {
   await idb.write(list, cursor).catch(() => { idbOk = false; });
 }
 
-/** Pull changes from the server. Concurrent callers share one request. */
-export function sync() {
+/** Pull changes from the server; resolves to the number of changed rows. Concurrent callers share one request. */
+export function sync(): Promise<number> {
   return (inflight ??= doSync().finally(() => { inflight = null; }));
 }
 /** Resolve once this session has synced at least once (reads are local after that). */
-export function ready() {
-  return lastSync !== null && loaded ? loaded : sync();
+export async function ready() {
+  if (!(lastSync !== null && loaded)) await sync();
 }
 
 export const all = () => [...rows.values()];

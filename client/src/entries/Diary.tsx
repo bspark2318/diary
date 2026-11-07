@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Editor from "../editor/Editor";
 import { listEntries, localDate } from "./api";
+import { sync } from "./cache";
 import SearchBox from "../search/SearchBox";
 import { buildIndex, indexDay } from "../search/index";
 
@@ -12,7 +13,13 @@ export default function Diary() {
   const [searching, setSearching] = useState(false);
 
   const refresh = () => listEntries().then((rows) => setDates(rows.map((r) => r.date).sort().reverse()));
-  useEffect(() => { refresh(); buildIndex(); }, []);   // index built once per unlock (D33)
+  useEffect(() => {
+    refresh(); buildIndex();   // index built once per unlock (D33)
+    // Tab back in view → pull other devices' writes (D34); only touch the list + index if something changed.
+    const onVisible = () => { if (document.visibilityState === "visible") sync().then((n) => { if (n) { refresh(); buildIndex(); } }); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
 
   const list = dates.includes(today) ? dates : [today, ...dates];
   return (
