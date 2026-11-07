@@ -19,16 +19,16 @@ async function loadAll(): Promise<Doc[]> {
   return Promise.all(rows.map(async (r) => ({ date: r.date, text: toText(await open(r.ciphertext, r.nonce)) })));
 }
 
-const ms = new MiniSearch<Doc>({
-  idField: "date",
-  fields: ["text"],
-  storeFields: ["text"],
-  searchOptions: { prefix: true, fuzzy: 0.2 },
-});
+const make = () =>
+  new MiniSearch<Doc>({ idField: "date", fields: ["text"], storeFields: ["text"], searchOptions: { prefix: true, fuzzy: 0.2 } });
 
+let ms = make();
+
+// Build into a fresh instance and swap: concurrent calls (StrictMode double-mount, visibilitychange) can't collide.
 export async function buildIndex() {
-  ms.removeAll();
-  ms.addAll(await loadAll());
+  const next = make();
+  next.addAll(await loadAll());
+  ms = next;
 }
 
 // After autosave: replace that one day's doc (D33).
