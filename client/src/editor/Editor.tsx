@@ -4,7 +4,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { seal, open } from "../entries/seal";
 import { Conflict, getEntry, putEntry } from "../entries/api";
 
-type Props = { date: string; onSaved: (date: string) => void };
+type Props = { date: string; onSaved: (date: string, doc: unknown) => void };
 
 // One day's entry. Loads + decrypts on date change; autosaves 1 s after last keystroke (D30);
 // sends baseUpdatedAt for optimistic locking (D32).
@@ -29,7 +29,7 @@ export default function Editor({ date, onSaved }: Props) {
       const { updatedAt } = await putEntry(date, await seal(doc), base.current);
       base.current = updatedAt;
       setStatus("saved");
-      onSaved(date);
+      onSaved(date, doc);
     } catch (e) {
       setStatus(e instanceof Conflict ? "conflict" : "error");
     }
