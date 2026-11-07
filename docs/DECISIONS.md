@@ -20,9 +20,11 @@ Running decision log (ADR-style). **Decisions** (settled, numbered Dn), **Open Q
 - **D16 — Server framework**: Hono on Node. Alternative: Fastify (heavier, Node-only). Runtime Bun deferred.
 - **D17 — Process**: one topic per session, learning-paced (not one-shot). Roadmap: 1 scaffold · 2 schema/migrations · 3 passkeys · 4 PRF+key K · 5 entries+editor · 6 IndexedDB+sync · 7 search (MiniSearch) · 8 deploy.
 - **D18 — DB access**: raw SQL via `pg` + hand-rolled migration runner (`server/migrations/NNN_name.sql`, `schema_migrations` table). No ORM. Alternatives: Drizzle, Kysely.
+- **D19 — Admin role**: user is admin of the site. `users.role` ('user'|'admin'), first user bootstrapped as admin. Admin powers: list/delete users, invites, stats. Admin **cannot** read entries (E2E). Migration + UI in a later session.
 - **D4 — Motivation**: (a) learn system design hands-on, (b) tool tailored to my own habits, (c) possibly open to public later.
 
 ## Open Questions
+- Admin: exact powers? invite-only signup vs open? admin UI vs CLI?
 - Multi-user "day one": full auth now, or single-user with clean seams for later?
 - Passkey fallback for browsers without PRF? (block, or passphrase fallback)
 - WebAuthn server library (e.g. SimpleWebAuthn) vs fully hand-rolled?
