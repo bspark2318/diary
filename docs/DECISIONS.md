@@ -25,6 +25,7 @@ Running decision log (ADR-style). **Decisions** (settled, numbered Dn), **Open Q
 - **D21 — PRF input**: fixed app constant (`sha256("diary-k-wrap-v1")`), not per-passkey. Per-passkey salt would need the credential id *before* `get()`, breaking discoverable (no-username) login. `passkeys.salt` is the HKDF salt instead.
 - **D22 — Sessions table stays** (vs signed JWT cookie): revocation + device list worth one index lookup per request. `passkeys.counter` kept per spec though Apple synced passkeys always report 0.
 - **D23 — No-PRF fallback: block.** After `create()`, if `clientExtensionResults.prf.enabled` is false → server deletes the just-created user+passkey, client shows "unsupported browser". Rejected: passphrase fallback (second secret, violates D11), recovery-code-as-login. (settled in peer session diary-f5)
+- **D24 — Second passkey enrollment**: needs K in memory on the enrolling device. (a) iCloud-synced passkey → same credential, same PRF, nothing to do. (b) New non-synced device → enter recovery code → unwrap K → create passkey → PRF eval → wrap K → store on that passkeys row. No QR/cross-device handoff in v1. (settled in peer session diary-f5)
 - **D4 — Motivation**: (a) learn system design hands-on, (b) tool tailored to my own habits, (c) possibly open to public later.
 
 ## Open Questions
