@@ -29,10 +29,11 @@ Running decision log (ADR-style). **Decisions** (settled, numbered Dn), **Open Q
 - **D25 — Recovery code**: 128-bit random → base32, grouped `xxxx-xxxx-…` (~26 chars), shown once at signup. KDF: PBKDF2-SHA256 (WebCrypto, ~600k iterations) with random 16-byte `users.recovery_salt` → wrap key → `users.recovery_wrapped_k`. Argon2id rejected: overkill for a 128-bit random secret, needs a dependency. (settled in peer session diary-f5)
 - **D26 — K wrap recipe**: WebCrypto only. `HKDF-SHA256(prfBytes, salt=passkeys.salt (16 random), info="diary-wrap")` → AES-256-GCM key. `wrapped_k = nonce(12) ‖ ciphertext(48)` = 60 bytes. Same layout for `users.recovery_wrapped_k` with PBKDF2-derived key (D25).
 - **D27 — When to wrap K**: at signup, client generates K (32 random) + recovery code. Try PRF at `create()`; if `clientExtensionResults.prf.results` present → wrap immediately (one Face ID). Else → immediate `get()` with `prf.eval` → wrap (two Face IDs). Then POST both wraps. Recovery code shown once, must be acknowledged. Rejected: lazy wrap at first entry (same second prompt, worse failure modes).
+- **D28 — Signup closed after first user**: first registration becomes admin, then `register/options` returns 403. Invites deferred (not needed; "just me" for now). Admin UI deferred.
 - **D4 — Motivation**: (a) learn system design hands-on, (b) tool tailored to my own habits, (c) possibly open to public later.
 
 ## Open Questions
-- Admin: exact powers? invite-only signup vs open? admin UI vs CLI?
+- Admin powers/UI: deferred until multi-user.
 - Multi-user "day one": full auth now, or single-user with clean seams for later?
 - WebAuthn server library (e.g. SimpleWebAuthn) vs fully hand-rolled?
 - Domain name + HTTPS method (Cloudflare Tunnel vs Caddy + port-forward)?
@@ -47,6 +48,7 @@ Running decision log (ADR-style). **Decisions** (settled, numbered Dn), **Open Q
 - Alternative: at-rest encryption + server-side search (Postgres FTS or Elasticsearch). Simpler, server can read entries.
 
 ## Log
+- **2026-11-06** — D28 signup closed. Parallel build: peer diary-f5 → S4 (key K) + S6 prep; this session → S5 (entries + editor) against `getK()` interface.
 - **2026-11-06** — Session 4 design split with peer session diary-f5: D21–D27 settled. 002 pushed (d390465).
 - **2026-11-06** — Session 3 passkeys built (bd97280). D20: schema fix, migration 002 (built by peer session diary-f5).
 - **2026-11-06** — D16: Hono.
