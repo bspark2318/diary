@@ -1,39 +1,53 @@
-import { useEffect, useState } from "react";
-import { startRegistration, startAuthentication } from "@simplewebauthn/browser";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { getK, onKeyChange } from "./crypto/key";
+import { register, login, logout } from "./crypto/auth";
+import Diary from "./entries/Diary";
 
-const post = (url: string, body?: unknown) =>
-  fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) }).then((r) => r.json());
+type Me = { userId: string; role: string };
 
 export default function App() {
-  const [userId, setUserId] = useState<string | null>(null);
+  const [me, setMe] = useState<Me | null>(null);
+  const k = useSyncExternalStore(onKeyChange, getK); // null = locked (K is memory-only; gone on reload)
+  const [recoveryCode, setRecoveryCode] = useState<string | null>(null);
   const [err, setErr] = useState("");
 
-  const refresh = () => fetch("/api/me").then((r) => (r.ok ? r.json() : null)).then((d) => setUserId(d?.userId ?? null));
+  const refresh = () => fetch("/api/me").then((r) => (r.ok ? r.json() : null)).then(setMe);
   useEffect(() => { refresh(); }, []);
 
-  async function run(kind: "register" | "login") {
+  async function run(fn: () => Promise<{ recoveryCode?: string } | void>) {
     setErr("");
     try {
-      const optionsJSON = await post(`/api/auth/${kind}/options`);
-      const response = kind === "register" ? await startRegistration({ optionsJSON }) : await startAuthentication({ optionsJSON });
-      const res = await post(`/api/auth/${kind}/verify`, response);
-      if (res.error) throw new Error(res.error);
+      const r = await fn();
+      if (r?.recoveryCode) setRecoveryCode(r.recoveryCode);
       await refresh();
     } catch (e) {
-      setErr(String(e));
+      setErr(e instanceof Error ? e.message : String(e));
     }
   }
 
-  if (userId) return (
+  if (recoveryCode) return (
     <main>
-      <p>signed in as <code>{userId}</code></p>
-      <button onClick={() => post("/api/auth/logout").then(refresh)}>Logout</button>
+      <h2>Your recovery code</h2>
+      <p>Shown <b>once</b>. Store it somewhere safe. Lose every passkey and this code, and the diary is unrecoverable.</p>
+      <pre style={{ fontSize: 20, userSelect: "all" }}>{recoveryCode}</pre>
+      <button onClick={() => setRecoveryCode(null)}>I saved it</button>
     </main>
   );
+
+  if (me) return (
+    <main>
+      <p>signed in as <code>{me.userId}</code> ({me.role}) — {k ? "unlocked" : "locked"}</p>
+      {!k && <button onClick={() => run(login)}>Unlock</button>}{" "}
+      <button onClick={() => run(logout)}>Logout</button>
+      {k && <Diary />}
+      {err && <p style={{ color: "crimson" }}>{err}</p>}
+    </main>
+  );
+
   return (
     <main>
-      <button onClick={() => run("register")}>Create account</button>{" "}
-      <button onClick={() => run("login")}>Sign in</button>
+      <button onClick={() => run(register)}>Create account</button>{" "}
+      <button onClick={() => run(login)}>Sign in</button>
       {err && <p style={{ color: "crimson" }}>{err}</p>}
     </main>
   );

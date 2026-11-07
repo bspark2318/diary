@@ -51,6 +51,8 @@ export const auth = new Hono();
 
 // ---------- register ----------
 auth.post("/register/options", async (c) => {
+  // D28: signup closes after the first user (who is admin). Invites later.
+  if ((await db.query("select 1 from users limit 1")).rowCount) return c.json({ error: "signup closed" }, 403);
   const userId = randomUUID();
   const options = await generateRegistrationOptions({
     rpName, rpID,
@@ -66,8 +68,11 @@ auth.post("/register/options", async (c) => {
 auth.post("/register/verify", async (c) => {
   const p = takePending(c);
   if (!p?.userId) return c.json({ error: "no pending registration" }, 400);
+  const response = await c.req.json();
+  // D23: no PRF → no way to ever unwrap K → refuse to create the account.
+  if (response.clientExtensionResults?.prf?.enabled !== true) return c.json({ error: "PRF not supported" }, 400);
   const { verified, registrationInfo } = await verifyRegistrationResponse({
-    response: await c.req.json(),
+    response,
     expectedChallenge: p.challenge,
     expectedOrigin: origin,
     expectedRPID: rpID,
@@ -84,7 +89,7 @@ auth.post("/register/verify", async (c) => {
     [credential.id, p.userId, Buffer.from(credential.publicKey), credential.counter, credential.transports ?? []],
   );
   await createSession(c, p.userId);
-  return c.json({ userId: p.userId });
+  return c.json({ userId: p.userId, credentialId: credential.id });
 });
 
 // ---------- login ----------
@@ -98,8 +103,13 @@ auth.post("/login/verify", async (c) => {
   const p = takePending(c);
   if (!p) return c.json({ error: "no pending login" }, 400);
   const response = await c.req.json();
-  const { rows } = await db.query<{ user_id: string; public_key: Buffer; counter: string; transports: string[] }>(
-    "select user_id, public_key, counter, transports from passkeys where id = $1", [response.id]);
+  const { rows } = await db.query<{
+    user_id: string; public_key: Buffer; counter: string; transports: string[];
+    wrapped_k: Buffer | null; salt: Buffer | null; role: string; has_recovery: boolean;
+  }>(
+    `select p.user_id, p.public_key, p.counter, p.transports, p.wrapped_k, p.salt, u.role,
+            (u.recovery_wrapped_k is not null) as has_recovery
+       from passkeys p join users u on u.id = p.user_id where p.id = $1`, [response.id]);
   const pk = rows[0];
   if (!pk) return c.json({ error: "unknown passkey" }, 400);
 
@@ -114,7 +124,12 @@ auth.post("/login/verify", async (c) => {
 
   await db.query("update passkeys set counter = $1 where id = $2", [authenticationInfo.newCounter, response.id]);
   await createSession(c, pk.user_id);
-  return c.json({ userId: pk.user_id });
+  // Hand back this passkey's K wrap so the client can unwrap with the PRF output it just received.
+  return c.json({
+    userId: pk.user_id, role: pk.role, credentialId: response.id,
+    wrappedK: pk.wrapped_k?.toString("base64url") ?? null, salt: pk.salt?.toString("base64url") ?? null,
+    hasRecovery: pk.has_recovery,
+  });
 });
 
 // ---------- session ----------
